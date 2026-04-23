@@ -142,16 +142,16 @@ public partial class Program
             webBuilder.UseStartup<Startup>();
             webBuilder.ConfigureKestrel(options => {
                 options.AddServerHeader = true;
-                //options.ListenAnyIP(5004, opt =>
-                //{
-                //    opt.Protocols = HttpProtocols.Http1AndHttp2;
-                //    opt.KestrelServerOptions.AllowAlternateSchemes = true;
-                //});
+                options.ListenAnyIP(5000, opt =>
+                {
+                    opt.Protocols = HttpProtocols.Http1AndHttp2;
+                    opt.KestrelServerOptions.AllowAlternateSchemes = true;
+                });
             });
             webBuilder.UseStaticWebAssets();
             webBuilder.UseWebRoot("wwwroot");
             webBuilder.UseContentRoot(Directory.GetCurrentDirectory()); //GetCurrentDirectory For Use Razor Pages
-            //webBuilder.UseUrls($"http://*:5004");
+            webBuilder.UseUrls($"http://*:5000");
 
         });
     }

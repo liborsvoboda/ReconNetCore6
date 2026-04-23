@@ -126,7 +126,7 @@ namespace Recon.Services
 
                                     if (exportSettingList.DataBaseType == "MSSQL") {
                                         try {
-                                            string insert = $"INSERT INTO {variable.InsertTableName} ([{variable.InsertMachineNameColumnName}],[{variable.InsertVariableNameColumnName}],[{variable.InsertVariableValueColumnName}]) VALUES ('{x.MachineName}', '{kvp.Key}', '{kvp.Value}');";
+                                            string insert = $"INSERT INTO {variable.InsertTableName} ([{variable.InsertMachineNameColumnName}],[{variable.InsertVariableNameColumnName}],[{variable.InsertVariableValueColumnName}],[{variable.InsertTimeStampColumnName}]) VALUES ('{x.MachineName}', '{kvp.Key}', '{kvp.Value}', '{DateTime.Now.ToString("yyyy-MM-dd H:mm:ss")}');";
                                             SqlConnection cnn = new(exportSettingList.TargetDbConnectionString);
                                             cnn.Open();
                                             if (cnn.State == ConnectionState.Open) {
@@ -138,14 +138,14 @@ namespace Recon.Services
                                             } else { saveToLocal = true; }
 
                                             if (saveToLocal) {
-                                                InsertTable record = new() { MachineName = x.MachineName, VariableName = kvp.Key, VariableValue = kvp.Value.ToString() };
+                                                InsertTable record = new() { MachineName = x.MachineName, VariableName = kvp.Key, VariableValue = kvp.Value.ToString(), TimeStamp = DateTime.Now };
                                                 var data = new ReconContext().InsertTables.Add(record);
                                                 data.Context.SaveChanges();
                                             }
                                         }
                                         catch (Exception ex) {
                                             GlobalFunctions.WriteLogFile("Machine Loader Service Insert MSSQL Program Exception: " + ex.StackTrace);
-                                            InsertTable record = new() { MachineName = x.MachineName, VariableName = kvp.Key, VariableValue = kvp.Value.ToString() };
+                                            InsertTable record = new() { MachineName = x.MachineName, VariableName = kvp.Key, VariableValue = kvp.Value.ToString(), TimeStamp = DateTime.Now };
                                             var data = new ReconContext().InsertTables.Add(record);
                                             data.Context.SaveChanges();
                                         }
@@ -158,21 +158,21 @@ namespace Recon.Services
                                             if (cnn.State == ConnectionState.Open) {
                                                 DataSet dataTable = new();
                                                 MySqlCommand comm = cnn.CreateCommand();
-                                                comm.CommandText = $"INSERT INTO {variable.InsertTableName}({variable.InsertMachineNameColumnName},{variable.InsertVariableNameColumnName},{variable.InsertVariableValueColumnName}) VALUES('{x.MachineName}', '{kvp.Key}', '{kvp.Value}')";
+                                                comm.CommandText = $"INSERT INTO {variable.InsertTableName}({variable.InsertMachineNameColumnName},{variable.InsertVariableNameColumnName},{variable.InsertVariableValueColumnName},{variable.InsertTimeStampColumnName}) VALUES('{x.MachineName}', '{kvp.Key}', '{kvp.Value}', '{DateTime.Now.ToString("yyyy-MM-dd H:mm:ss")}')";
                                                 comm.ExecuteNonQuery();
                                                 cnn.Close();
                                                 saveToLocal = false;
                                             } else { saveToLocal = true; }
 
                                             if (saveToLocal) {
-                                                InsertTable record = new() { MachineName = x.MachineName, VariableName = kvp.Key, VariableValue = kvp.Value.ToString() };
+                                                InsertTable record = new() { MachineName = x.MachineName, VariableName = kvp.Key, VariableValue = kvp.Value.ToString(), TimeStamp = DateTime.Now };
                                                 var data = new ReconContext().InsertTables.Add(record);
                                                 data.Context.SaveChanges();
                                             }
                                         }
                                         catch (Exception ex) {
                                             GlobalFunctions.WriteLogFile("Machine Loader Service Insert MYSQL Program Exception: " + ex.StackTrace);
-                                            InsertTable record = new() { MachineName = x.MachineName, VariableName = kvp.Key, VariableValue = kvp.Value.ToString() };
+                                            InsertTable record = new() { MachineName = x.MachineName, VariableName = kvp.Key, VariableValue = kvp.Value.ToString(), TimeStamp = DateTime.Now };
                                             var data = new ReconContext().InsertTables.Add(record);
                                             data.Context.SaveChanges();
                                         }
@@ -224,7 +224,7 @@ namespace Recon.Services
 
                 Program.Settings.SettingData = Program.Settings.SettingData.SetItem(machineName.MachineName, (finishCycle - startCycle).TotalMilliseconds.ToString());
                 try {
-                    File.WriteAllText(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Data", "config.json"), JsonSerializer.Serialize(Program.Settings.SettingData));
+                    //File.WriteAllText(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Data", "config.json"), JsonSerializer.Serialize(Program.Settings.SettingData));
                 } catch (Exception ex) { }
             }
 
