@@ -15,23 +15,21 @@ using Recon.Services;
 using Serilog;
 using System.Data;
 
-public partial class Program
-{
+public partial class Program {
     public static Settings Settings = new() { SettingData = GlobalFunctions.LoadSetting() };
     public static List<MachineData> MachinesData = new();
 
 
-    public class Startup
-    {
+    public class Startup {
 
-        public void ConfigureServices(IServiceCollection services)
-        {
-            services.AddDbContext<ReconContext>(opt => opt.UseSqlServer(Settings.SettingData.FirstOrDefault(a => a.Key == "connectionString").Value).UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        public void ConfigureServices(IServiceCollection services) {
+            services.AddDbContext<ReconContext>(opt => {
+                opt.UseSqlServer(Settings.SettingData.FirstOrDefault(a => a.Key == "connectionString").Value, cfg => cfg.EnableRetryOnFailure(1)).UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            });
             services.AddHttpContextAccessor();
 
             services.AddRazorPages().AddXmlSerializerFormatters().AddXmlDataContractSerializerFormatters();
-            services.AddSwaggerGen(c =>
-            {
+            services.AddSwaggerGen(c => {
                 c.AddSecurityDefinition("Basic", new OpenApiSecurityScheme { Name = "Authorization", Type = SecuritySchemeType.Http, Scheme = "basic", In = ParameterLocation.Header, Description = "Basic Authorization header for getting Bearer Token." });
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                      { { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Basic" } }, new List<string>() } });
@@ -41,24 +39,20 @@ public partial class Program
             });
 
             services.AddEndpointsApiExplorer().AddControllersWithViews();
-            services.AddSingleton<IHttpContextAccessor, HtttpContextExtension>();
-            services.AddAuthentication(x =>
-            {
+            services.AddSingleton<IHttpContextAccessor, HttpContextExtension>();
+            services.AddAuthentication(x => {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 x.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                 x.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(x =>
-            {
+            }).AddJwtBearer(x => {
                 x.BackchannelHttpHandler = new HttpClientHandler { ServerCertificateCustomValidationCallback = delegate { return true; } };
                 x.RequireHttpsMetadata = false;
                 x.SaveToken = true;
                 x.TokenValidationParameters = GlobalFunctions.ValidAndGetTokenParameters();
 
-                x.Events = new JwtBearerEvents
-                {
-                    OnAuthenticationFailed = context =>
-                    {
+                x.Events = new JwtBearerEvents {
+                    OnAuthenticationFailed = context => {
                         if (context.Exception.GetType() == typeof(SecurityTokenExpiredException)) { context.Response.Headers.Add("IS-TOKEN-EXPIRED", "true"); }
                         return Task.CompletedTask;
                     }
@@ -71,8 +65,7 @@ public partial class Program
             services.AddResponseCaching();
             services.AddMemoryCache();
             services.AddDistributedMemoryCache();
-            services.AddSession(options =>
-            {
+            services.AddSession(options => {
                 options.Cookie.Name = "SessionCookie";
                 options.Cookie.SameSite = SameSiteMode.Lax; options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.Cookie.IsEssential = true; options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -81,8 +74,7 @@ public partial class Program
             services.AddEndpointsApiExplorer();
         }
 
-        public void Configure(IApplicationBuilder app)
-        {
+        public void Configure(IApplicationBuilder app) {
 
 
             app.UseExceptionHandler("/Error");
@@ -114,16 +106,14 @@ public partial class Program
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
-            {
+            app.UseEndpoints(endpoints => {
                 endpoints.MapRazorPages();
                 endpoints.MapSwagger();
                 endpoints.MapControllers();
             });
 
 
-            app.Use(async (HttpContext context, Func<Task> next) =>
-            {
+            app.Use(async (HttpContext context, Func<Task> next) => {
                 context = GlobalFunctions.IncludeCookieTokenToRequest(context); //Include TOKEN
                 await next();
             });
@@ -135,15 +125,13 @@ public partial class Program
         }
     }
 
-    public static IHostBuilder BuildWebHost(string[] args)
-    {
+    public static IHostBuilder BuildWebHost(string[] args) {
         
         return Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilder => {
             webBuilder.UseStartup<Startup>();
             webBuilder.ConfigureKestrel(options => {
                 options.AddServerHeader = true;
-                options.ListenAnyIP(5000, opt =>
-                {
+                options.ListenAnyIP(5000, opt => {
                     opt.Protocols = HttpProtocols.Http1AndHttp2;
                     opt.KestrelServerOptions.AllowAlternateSchemes = true;
                 });
@@ -159,8 +147,7 @@ public partial class Program
 
 
 
-    private static void Main(string[] args)
-    {
+    private static void Main(string[] args) {
         IHostBuilder? hostBuilder = BuildWebHost(args);
         hostBuilder.ConfigureDefaults(args).ConfigureWebHostDefaults(configure => { });
         hostBuilder.UseWindowsService(options => {
